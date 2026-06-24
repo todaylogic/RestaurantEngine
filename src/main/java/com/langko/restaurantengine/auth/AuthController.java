@@ -9,7 +9,6 @@ import com.langko.restaurantengine.staff.dto.StaffResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,12 +28,6 @@ public class AuthController {
     public ResponseEntity<ApiResponse<StaffResponse>> register(
             @Valid @RequestBody RegisterRequest request,
             @AuthenticationPrincipal Staff currentUser) {
-        boolean isFirst = authService.isFirstStaff();
-        if (!isFirst) {
-            if (currentUser == null || currentUser.getRole() != com.langko.restaurantengine.staff.Role.ADMIN) {
-                throw new AccessDeniedException("Only ADMIN can register new staff");
-            }
-        }
-        return ResponseEntity.ok(ApiResponse.success(new StaffResponse(authService.register(request))));
+        return ResponseEntity.ok(ApiResponse.success(authService.register(request, currentUser)));
     }
 }

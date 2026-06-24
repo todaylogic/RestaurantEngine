@@ -4,15 +4,19 @@ import com.langko.restaurantengine.auth.dto.AuthResponse;
 import com.langko.restaurantengine.auth.dto.LoginRequest;
 import com.langko.restaurantengine.auth.dto.RegisterRequest;
 import com.langko.restaurantengine.exception.ResourceNotFoundException;
+import com.langko.restaurantengine.staff.Role;
 import com.langko.restaurantengine.staff.Staff;
 import com.langko.restaurantengine.staff.StaffRepository;
+import com.langko.restaurantengine.staff.dto.StaffResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -34,7 +38,14 @@ public class AuthService {
         return new AuthResponse(token, staff.getRole(), staff.getFirstName(), staff.getLastName());
     }
 
-    public Staff register(RegisterRequest request) {
+    @Transactional
+    public StaffResponse register(RegisterRequest request, Staff currentUser) {
+        boolean isFirst = staffRepository.count() == 0;
+        if (!isFirst) {
+            if (currentUser == null || currentUser.getRole() != Role.ADMIN) {
+                throw new AccessDeniedException("Only ADMIN can register new staff");
+            }
+        }
         if (staffRepository.existsByEmail(request.getEmail())) {
             throw new DataIntegrityViolationException("Email already in use");
         }
@@ -48,10 +59,6 @@ public class AuthService {
             .build();
         Staff saved = staffRepository.save(staff);
         log.info("New staff registered: {}", saved.getEmail());
-        return saved;
-    }
-
-    public boolean isFirstStaff() {
-        return staffRepository.count() == 0;
+        return new StaffResponse(saved);
     }
 }

@@ -11,7 +11,7 @@ public class StaffRequest {
     @NotBlank private String firstName;
     @NotBlank private String lastName;
     @NotBlank @Email private String email;
-    @NotBlank private String password;
+    private String password;
     @NotNull private Role role;
     private String phone;
 }

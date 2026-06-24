@@ -49,6 +49,9 @@ public class OrderService {
     public Order createOrder(CreateOrderRequest request, Staff staff) {
         RestaurantTable table = tableRepository.findById(request.getTableId())
             .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + request.getTableId()));
+        if (table.getStatus() != TableStatus.AVAILABLE) {
+            throw new IllegalStateException("Table " + table.getTableNumber() + " is not available");
+        }
         table.setStatus(TableStatus.OCCUPIED);
         tableRepository.save(table);
 
@@ -64,8 +67,10 @@ public class OrderService {
         Order order = getOrderById(id);
         order.setStatus(request.getStatus());
         if (request.getStatus() == OrderStatus.COMPLETED || request.getStatus() == OrderStatus.CANCELLED) {
-            order.getTable().setStatus(TableStatus.AVAILABLE);
-            tableRepository.save(order.getTable());
+            RestaurantTable table = tableRepository.findById(order.getTable().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Table not found"));
+            table.setStatus(TableStatus.AVAILABLE);
+            tableRepository.save(table);
         }
         return orderRepository.save(order);
     }

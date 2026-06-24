@@ -1,10 +1,12 @@
 package com.langko.restaurantengine.table;
 
 import com.langko.restaurantengine.exception.ResourceNotFoundException;
+import com.langko.restaurantengine.order.OrderRepository;
 import com.langko.restaurantengine.table.dto.TableRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,16 +16,20 @@ import java.util.List;
 public class TableService {
 
     private final TableRepository tableRepository;
+    private final OrderRepository orderRepository;
 
+    @Transactional(readOnly = true)
     public List<RestaurantTable> getAllTables() {
         return tableRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
     public RestaurantTable getTableById(Long id) {
         return tableRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + id));
     }
 
+    @Transactional
     public RestaurantTable createTable(TableRequest request) {
         RestaurantTable table = RestaurantTable.builder()
             .tableNumber(request.getTableNumber())
@@ -34,6 +40,7 @@ public class TableService {
         return saved;
     }
 
+    @Transactional
     public RestaurantTable updateTable(Long id, TableRequest request) {
         RestaurantTable table = getTableById(id);
         table.setTableNumber(request.getTableNumber());
@@ -42,7 +49,11 @@ public class TableService {
         return tableRepository.save(table);
     }
 
+    @Transactional
     public void deleteTable(Long id) {
+        if (orderRepository.existsByTableId(id)) {
+            throw new IllegalStateException("Cannot delete table with active orders");
+        }
         RestaurantTable table = getTableById(id);
         tableRepository.delete(table);
         log.info("Deleted table: {}", id);
