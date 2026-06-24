@@ -27,6 +27,7 @@ public class OrderService {
     private final TableRepository tableRepository;
     private final MenuItemRepository menuItemRepository;
 
+    @Transactional(readOnly = true)
     public Page<Order> getAllOrders(OrderStatus status, Long tableId, Pageable pageable) {
         if (status != null && tableId != null) {
             return orderRepository.findByStatusAndTableId(status, tableId, pageable);
@@ -38,6 +39,7 @@ public class OrderService {
         return orderRepository.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
     public Order getOrderById(Long id) {
         return orderRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
@@ -87,7 +89,9 @@ public class OrderService {
         Order order = getOrderById(orderId);
         OrderItem item = orderItemRepository.findById(itemId)
             .orElseThrow(() -> new ResourceNotFoundException("Order item not found: " + itemId));
-        order.getItems().remove(item);
+        if (!order.getItems().remove(item)) {
+            throw new ResourceNotFoundException("Order item " + itemId + " does not belong to order " + orderId);
+        }
         return orderRepository.save(order);
     }
 }
