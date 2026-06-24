@@ -52,9 +52,12 @@ class AuthControllerTest {
 
     @Test
     void login_validCredentials_returnsToken() throws Exception {
-        staffRepository.save(Staff.builder()
-            .firstName("Jane").lastName("Doe").email("jane@test.com")
-            .password(passwordEncoder.encode("secret")).role(Role.ADMIN).build());
+        Staff jane = new Staff();
+        jane.setFirstName("Jane"); jane.setLastName("Doe");
+        jane.setEmail("jane@test.com");
+        jane.setPassword(passwordEncoder.encode("secret"));
+        jane.setRole(Role.ADMIN);
+        staffRepository.save(jane);
 
         LoginRequest req = new LoginRequest();
         req.setEmail("jane@test.com"); req.setPassword("secret");
@@ -69,9 +72,12 @@ class AuthControllerTest {
 
     @Test
     void login_wrongPassword_returns401() throws Exception {
-        staffRepository.save(Staff.builder()
-            .firstName("Jane").lastName("Doe").email("jane2@test.com")
-            .password(passwordEncoder.encode("secret")).role(Role.ADMIN).build());
+        Staff jane = new Staff();
+        jane.setFirstName("Jane"); jane.setLastName("Doe");
+        jane.setEmail("jane2@test.com");
+        jane.setPassword(passwordEncoder.encode("secret"));
+        jane.setRole(Role.ADMIN);
+        staffRepository.save(jane);
 
         LoginRequest req = new LoginRequest();
         req.setEmail("jane2@test.com"); req.setPassword("wrong");

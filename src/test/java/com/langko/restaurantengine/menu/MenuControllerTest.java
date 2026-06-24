@@ -37,10 +37,12 @@ class MenuControllerTest {
     void setUp() {
         categoryRepository.deleteAll();
         staffRepository.deleteAll();
-        Staff admin = staffRepository.save(Staff.builder()
-            .firstName("Admin").lastName("User").email("admin@test.com")
-            .password(passwordEncoder.encode("password")).role(Role.ADMIN).build());
-        adminToken = "Bearer " + jwtUtil.generateToken(admin);
+        Staff admin = new Staff();
+        admin.setFirstName("Admin"); admin.setLastName("User");
+        admin.setEmail("admin@test.com");
+        admin.setPassword(passwordEncoder.encode("password"));
+        admin.setRole(Role.ADMIN);
+        adminToken = "Bearer " + jwtUtil.generateToken(staffRepository.save(admin));
     }
 
     @Test

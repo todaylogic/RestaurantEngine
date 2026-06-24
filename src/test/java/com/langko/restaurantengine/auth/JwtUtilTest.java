@@ -20,10 +20,11 @@ class JwtUtilTest {
             "testSecretKeyForTestingPurposesOnly1234567890ABCDEF");
         ReflectionTestUtils.setField(jwtUtil, "expiration", 86400000L);
 
-        staff = Staff.builder()
-            .id(1L).firstName("John").lastName("Doe")
-            .email("john@test.com").password("hashed")
-            .role(Role.ADMIN).build();
+        staff = new Staff();
+        staff.setFirstName("John"); staff.setLastName("Doe");
+        staff.setEmail("john@test.com");
+        staff.setPassword("hashed");
+        staff.setRole(Role.ADMIN);
     }
 
     @Test
@@ -47,7 +48,8 @@ class JwtUtilTest {
     @Test
     void isTokenValid_returnsFalseForWrongUser() {
         String token = jwtUtil.generateToken(staff);
-        Staff other = Staff.builder().email("other@test.com").build();
+        Staff other = new Staff();
+        other.setEmail("other@test.com");
         assertThat(jwtUtil.isTokenValid(token, other)).isFalse();
     }
 }

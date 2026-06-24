@@ -37,10 +37,13 @@ class TableControllerTest {
     void setUp() {
         tableRepository.deleteAll();
         staffRepository.deleteAll();
-        Staff manager = staffRepository.save(Staff.builder()
-            .firstName("Mgr").lastName("User").email("mgr@test.com")
-            .password(passwordEncoder.encode("pass")).role(Role.MANAGER).build());
-        managerToken = "Bearer " + jwtUtil.generateToken(manager);
+
+        Staff manager = new Staff();
+        manager.setFirstName("Mgr"); manager.setLastName("User");
+        manager.setEmail("mgr@test.com");
+        manager.setPassword(passwordEncoder.encode("pass"));
+        manager.setRole(Role.MANAGER);
+        managerToken = "Bearer " + jwtUtil.generateToken(staffRepository.save(manager));
     }
 
     @Test

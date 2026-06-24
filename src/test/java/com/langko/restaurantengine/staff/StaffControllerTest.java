@@ -33,14 +33,20 @@ class StaffControllerTest {
     @BeforeEach
     void setUp() {
         staffRepository.deleteAll();
-        Staff admin = staffRepository.save(Staff.builder()
-            .firstName("Admin").lastName("User").email("admin@test.com")
-            .password(passwordEncoder.encode("pass")).role(Role.ADMIN).build());
-        Staff manager = staffRepository.save(Staff.builder()
-            .firstName("Mgr").lastName("User").email("mgr@test.com")
-            .password(passwordEncoder.encode("pass")).role(Role.MANAGER).build());
-        adminToken = "Bearer " + jwtUtil.generateToken(admin);
-        managerToken = "Bearer " + jwtUtil.generateToken(manager);
+
+        Staff admin = new Staff();
+        admin.setFirstName("Admin"); admin.setLastName("User");
+        admin.setEmail("admin@test.com");
+        admin.setPassword(passwordEncoder.encode("pass"));
+        admin.setRole(Role.ADMIN);
+        adminToken = "Bearer " + jwtUtil.generateToken(staffRepository.save(admin));
+
+        Staff manager = new Staff();
+        manager.setFirstName("Mgr"); manager.setLastName("User");
+        manager.setEmail("mgr@test.com");
+        manager.setPassword(passwordEncoder.encode("pass"));
+        manager.setRole(Role.MANAGER);
+        managerToken = "Bearer " + jwtUtil.generateToken(staffRepository.save(manager));
     }
 
     @Test

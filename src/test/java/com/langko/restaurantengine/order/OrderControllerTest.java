@@ -44,13 +44,17 @@ class OrderControllerTest {
         tableRepository.deleteAll();
         staffRepository.deleteAll();
 
-        Staff staff = staffRepository.save(Staff.builder()
-            .firstName("Waiter").lastName("One").email("waiter@test.com")
-            .password(passwordEncoder.encode("pass")).role(Role.STAFF).build());
-        staffToken = "Bearer " + jwtUtil.generateToken(staff);
+        Staff waiter = new Staff();
+        waiter.setFirstName("Waiter"); waiter.setLastName("One");
+        waiter.setEmail("waiter@test.com");
+        waiter.setPassword(passwordEncoder.encode("pass"));
+        waiter.setRole(Role.STAFF);
+        staffToken = "Bearer " + jwtUtil.generateToken(staffRepository.save(waiter));
 
-        table = tableRepository.save(RestaurantTable.builder()
-            .tableNumber("T1").capacity(4).status(TableStatus.AVAILABLE).build());
+        RestaurantTable t = new RestaurantTable();
+        t.setTableNumber("T1"); t.setCapacity(4);
+        t.setStatus(TableStatus.AVAILABLE);
+        table = tableRepository.save(t);
     }
 
     @Test
