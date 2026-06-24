@@ -3,8 +3,8 @@ package com.langko.restaurantengine.menu;
 import com.langko.restaurantengine.exception.ResourceNotFoundException;
 import com.langko.restaurantengine.menu.dto.MenuCategoryRequest;
 import com.langko.restaurantengine.menu.dto.MenuItemRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -12,13 +12,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class MenuService {
+
+    private static final Logger log = LoggerFactory.getLogger(MenuService.class);
 
     private final MenuCategoryRepository categoryRepository;
     private final MenuItemRepository itemRepository;
+
+    public MenuService(MenuCategoryRepository categoryRepository, MenuItemRepository itemRepository) {
+        this.categoryRepository = categoryRepository;
+        this.itemRepository = itemRepository;
+    }
 
     @Transactional(readOnly = true)
     public List<MenuCategory> getAllCategories() {
@@ -27,8 +32,9 @@ public class MenuService {
 
     @Transactional
     public MenuCategory createCategory(MenuCategoryRequest request) {
-        MenuCategory category = MenuCategory.builder()
-            .name(request.getName()).description(request.getDescription()).build();
+        MenuCategory category = new MenuCategory();
+        category.setName(request.getName());
+        category.setDescription(request.getDescription());
         MenuCategory saved = categoryRepository.save(category);
         log.info("Created menu category: {}", saved.getName());
         return saved;
@@ -52,10 +58,12 @@ public class MenuService {
     public MenuItem createItem(MenuItemRequest request) {
         MenuCategory category = categoryRepository.findById(request.getCategoryId())
             .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + request.getCategoryId()));
-        MenuItem item = MenuItem.builder()
-            .name(request.getName()).description(request.getDescription())
-            .price(request.getPrice()).available(request.getAvailable())
-            .category(category).build();
+        MenuItem item = new MenuItem();
+        item.setName(request.getName());
+        item.setDescription(request.getDescription());
+        item.setPrice(request.getPrice());
+        item.setAvailable(request.getAvailable());
+        item.setCategory(category);
         MenuItem saved = itemRepository.save(item);
         log.info("Created menu item: {}", saved.getName());
         return saved;

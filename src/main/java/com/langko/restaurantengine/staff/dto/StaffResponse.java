@@ -2,11 +2,9 @@ package com.langko.restaurantengine.staff.dto;
 
 import com.langko.restaurantengine.staff.Role;
 import com.langko.restaurantengine.staff.Staff;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-@Getter
 public class StaffResponse {
     private final Long id;
     private final String firstName;
@@ -25,4 +23,12 @@ public class StaffResponse {
         this.phone = staff.getPhone();
         this.createdAt = staff.getCreatedAt();
     }
+
+    public Long getId() { return id; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
+    public String getEmail() { return email; }
+    public Role getRole() { return role; }
+    public String getPhone() { return phone; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

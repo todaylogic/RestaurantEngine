@@ -3,7 +3,6 @@ package com.langko.restaurantengine.table;
 import com.langko.restaurantengine.common.ApiResponse;
 import com.langko.restaurantengine.table.dto.TableRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -12,10 +11,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tables")
-@RequiredArgsConstructor
 public class TableController {
 
     private final TableService tableService;
+
+    public TableController(TableService tableService) {
+        this.tableService = tableService;
+    }
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")

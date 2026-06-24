@@ -1,9 +1,7 @@
 package com.langko.restaurantengine.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Getter;
 
-@Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
     private final boolean success;
@@ -19,6 +17,12 @@ public class ApiResponse<T> {
         this.error = error;
         this.status = status;
     }
+
+    public boolean isSuccess() { return success; }
+    public T getData() { return data; }
+    public String getMessage() { return message; }
+    public String getError() { return error; }
+    public Integer getStatus() { return status; }
 
     public static <T> ApiResponse<T> success(T data) {
         return new ApiResponse<>(true, data, "OK", null, null);

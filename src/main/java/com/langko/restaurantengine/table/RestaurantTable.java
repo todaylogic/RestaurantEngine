@@ -2,13 +2,12 @@ package com.langko.restaurantengine.table;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
 
 @Entity
 @Table(name = "restaurant_tables")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class RestaurantTable {
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -21,4 +20,15 @@ public class RestaurantTable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TableStatus status = TableStatus.AVAILABLE;
+
+    public RestaurantTable() {}
+
+    public Long getId() { return id; }
+    public String getTableNumber() { return tableNumber; }
+    public Integer getCapacity() { return capacity; }
+    public TableStatus getStatus() { return status; }
+
+    public void setTableNumber(String tableNumber) { this.tableNumber = tableNumber; }
+    public void setCapacity(Integer capacity) { this.capacity = capacity; }
+    public void setStatus(TableStatus status) { this.status = status; }
 }

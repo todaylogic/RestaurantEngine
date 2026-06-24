@@ -3,20 +3,25 @@ package com.langko.restaurantengine.table;
 import com.langko.restaurantengine.exception.ResourceNotFoundException;
 import com.langko.restaurantengine.order.OrderRepository;
 import com.langko.restaurantengine.table.dto.TableRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class TableService {
+
+    private static final Logger log = LoggerFactory.getLogger(TableService.class);
 
     private final TableRepository tableRepository;
     private final OrderRepository orderRepository;
+
+    public TableService(TableRepository tableRepository, OrderRepository orderRepository) {
+        this.tableRepository = tableRepository;
+        this.orderRepository = orderRepository;
+    }
 
     @Transactional(readOnly = true)
     public List<RestaurantTable> getAllTables() {
@@ -31,10 +36,10 @@ public class TableService {
 
     @Transactional
     public RestaurantTable createTable(TableRequest request) {
-        RestaurantTable table = RestaurantTable.builder()
-            .tableNumber(request.getTableNumber())
-            .capacity(request.getCapacity())
-            .status(request.getStatus()).build();
+        RestaurantTable table = new RestaurantTable();
+        table.setTableNumber(request.getTableNumber());
+        table.setCapacity(request.getCapacity());
+        table.setStatus(request.getStatus());
         RestaurantTable saved = tableRepository.save(table);
         log.info("Created table: {}", saved.getTableNumber());
         return saved;

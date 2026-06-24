@@ -10,22 +10,30 @@ import com.langko.restaurantengine.staff.Staff;
 import com.langko.restaurantengine.table.RestaurantTable;
 import com.langko.restaurantengine.table.TableRepository;
 import com.langko.restaurantengine.table.TableStatus;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final TableRepository tableRepository;
     private final MenuItemRepository menuItemRepository;
+
+    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
+                        TableRepository tableRepository, MenuItemRepository menuItemRepository) {
+        this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.tableRepository = tableRepository;
+        this.menuItemRepository = menuItemRepository;
+    }
 
     @Transactional(readOnly = true)
     public Page<Order> getAllOrders(OrderStatus status, Long tableId, Pageable pageable) {
@@ -55,8 +63,10 @@ public class OrderService {
         table.setStatus(TableStatus.OCCUPIED);
         tableRepository.save(table);
 
-        Order order = Order.builder()
-            .table(table).staff(staff).status(OrderStatus.PENDING).build();
+        Order order = new Order();
+        order.setTable(table);
+        order.setStaff(staff);
+        order.setStatus(OrderStatus.PENDING);
         Order saved = orderRepository.save(order);
         log.info("Created order {} for table {}", saved.getId(), table.getTableNumber());
         return saved;
@@ -80,11 +90,12 @@ public class OrderService {
         Order order = getOrderById(orderId);
         MenuItem menuItem = menuItemRepository.findById(request.getMenuItemId())
             .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + request.getMenuItemId()));
-        OrderItem item = OrderItem.builder()
-            .order(order).menuItem(menuItem)
-            .quantity(request.getQuantity())
-            .unitPrice(menuItem.getPrice())
-            .notes(request.getNotes()).build();
+        OrderItem item = new OrderItem();
+        item.setOrder(order);
+        item.setMenuItem(menuItem);
+        item.setQuantity(request.getQuantity());
+        item.setUnitPrice(menuItem.getPrice());
+        item.setNotes(request.getNotes());
         order.getItems().add(item);
         return orderRepository.save(order);
     }

@@ -3,13 +3,12 @@ package com.langko.restaurantengine.order;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.langko.restaurantengine.menu.MenuItem;
 import jakarta.persistence.*;
-import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class OrderItem {
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -29,4 +28,19 @@ public class OrderItem {
     private BigDecimal unitPrice;
 
     private String notes;
+
+    public OrderItem() {}
+
+    public Long getId() { return id; }
+    public Order getOrder() { return order; }
+    public MenuItem getMenuItem() { return menuItem; }
+    public Integer getQuantity() { return quantity; }
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public String getNotes() { return notes; }
+
+    public void setOrder(Order order) { this.order = order; }
+    public void setMenuItem(MenuItem menuItem) { this.menuItem = menuItem; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+    public void setNotes(String notes) { this.notes = notes; }
 }

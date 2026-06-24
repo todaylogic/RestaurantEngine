@@ -1,0 +1,910 @@
+{
+  "info": {
+    "name": "RestaurantEngine API",
+    "description": "Complete test suite for RestaurantEngine REST API.\n\n**Setup:**\n1. Run the app: `DB_USERNAME=admin DB_PASSWORD=admin JWT_SECRET=RestaurantEngineSecretKey2026ForJWTSigning!! mvn spring-boot:run`\n2. Register the first admin via POST /api/auth/register\n3. Login via POST /api/auth/login — the token is auto-saved to `{{token}}`\n4. Run other requests in order\n\n**Variables:** `baseUrl` = http://localhost:8080, `token` is set automatically after login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "categoryId", "value": "1", "type": "string" },
+    { "key": "menuItemId", "value": "1", "type": "string" },
+    { "key": "tableId", "value": "1", "type": "string" },
+    { "key": "orderId", "value": "1", "type": "string" },
+    { "key": "orderItemId", "value": "1", "type": "string" },
+    { "key": "staffId", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register First Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@restaurant.com\",\n  \"password\": \"admin123\",\n  \"role\": \"ADMIN\",\n  \"phone\": \"+1-555-0100\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register succeeds', () => pm.response.to.have.status(200));",
+                  "pm.test('No password in response', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@restaurant.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.token) {",
+                  "  pm.collectionVariables.set('token', body.data.token);",
+                  "  console.log('Token saved');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Staff (ADMIN-only after first admin exists)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"jane@restaurant.com\",\n  \"password\": \"staff123\",\n  \"role\": \"STAFF\",\n  \"phone\": \"+1-555-0101\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Second register requires auth', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register without auth (should 401 after first admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Hacker\",\n  \"lastName\": \"Attack\",\n  \"email\": \"hacker@evil.com\",\n  \"password\": \"bad\",\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unauthenticated register rejected', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login with wrong password (should 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@restaurant.com\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Wrong password rejected', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Menu Categories",
+      "item": [
+        {
+          "name": "Get All Categories (public)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/menu/categories", "host": ["{{baseUrl}}"], "path": ["api", "menu", "categories"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get categories succeeds (public)', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Course\",\n  \"description\": \"Hearty main dishes\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/menu/categories", "host": ["{{baseUrl}}"], "path": ["api", "menu", "categories"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create category succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('categoryId', body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Category - Duplicate (should 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Course\",\n  \"description\": \"Duplicate\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/menu/categories", "host": ["{{baseUrl}}"], "path": ["api", "menu", "categories"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Duplicate category rejected', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Menu Items",
+      "item": [
+        {
+          "name": "Get All Items (public)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/menu/items", "host": ["{{baseUrl}}"], "path": ["api", "menu", "items"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get items succeeds (public)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Menu Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Grilled Salmon\",\n  \"description\": \"Fresh Atlantic salmon with herbs\",\n  \"price\": 24.99,\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/menu/items", "host": ["{{baseUrl}}"], "path": ["api", "menu", "items"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create item succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('menuItemId', body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Item by ID (public)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/menu/items/{{menuItemId}}", "host": ["{{baseUrl}}"], "path": ["api", "menu", "items", "{{menuItemId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get item by id succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Items by Category (public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/menu/items?categoryId={{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "menu", "items"],
+              "query": [{ "key": "categoryId", "value": "{{categoryId}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Filter by category succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Menu Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Grilled Salmon\",\n  \"description\": \"Fresh Atlantic salmon — chef's special\",\n  \"price\": 26.99,\n  \"available\": true,\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/menu/items/{{menuItemId}}", "host": ["{{baseUrl}}"], "path": ["api", "menu", "items", "{{menuItemId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update item succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Item - Validation Error (price negative, should 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bad Item\",\n  \"price\": -5.00,\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/menu/items", "host": ["{{baseUrl}}"], "path": ["api", "menu", "items"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Negative price rejected', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Tables",
+      "item": [
+        {
+          "name": "Get All Tables",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/tables", "host": ["{{baseUrl}}"], "path": ["api", "tables"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get tables succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Table",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableNumber\": \"T1\",\n  \"capacity\": 4\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tables", "host": ["{{baseUrl}}"], "path": ["api", "tables"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create table succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('tableId', body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Table Status to RESERVED",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableNumber\": \"T1\",\n  \"capacity\": 4,\n  \"status\": \"RESERVED\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tables/{{tableId}}", "host": ["{{baseUrl}}"], "path": ["api", "tables", "{{tableId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update table succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset Table to AVAILABLE",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableNumber\": \"T1\",\n  \"capacity\": 4,\n  \"status\": \"AVAILABLE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tables/{{tableId}}", "host": ["{{baseUrl}}"], "path": ["api", "tables", "{{tableId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Reset table succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": {{tableId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create order succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('orderId', body.data.id);",
+                  "pm.test('Table is now OCCUPIED', () => {",
+                  "  pm.expect(body.data.table.status).to.equal('OCCUPIED');",
+                  "});",
+                  "pm.test('No password in staff field', () => {",
+                  "  pm.expect(body.data.staff).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Order on Occupied Table (should 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": {{tableId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Double-booking rejected', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Item to Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menuItemId\": {{menuItemId}},\n  \"quantity\": 2,\n  \"notes\": \"Well done please\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/items", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "items"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Add item succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.items && body.data.items.length > 0) {",
+                  "  pm.collectionVariables.set('orderItemId', body.data.items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Another Item to Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menuItemId\": {{menuItemId}},\n  \"quantity\": 1,\n  \"notes\": \"Extra sauce\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/items", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "items"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Add second item succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Item from Order",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/items/{{orderItemId}}", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "items", "{{orderItemId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Remove item succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get order succeeds', () => pm.response.to.have.status(200));",
+                  "pm.test('No password in staff', () => {",
+                  "  pm.expect(pm.response.json().data.staff).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Order Status to IN_PROGRESS",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "status"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status update succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Order (frees table)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}", "status"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Complete order succeeds', () => pm.response.to.have.status(200));",
+                  "pm.test('Table is back AVAILABLE', () => {",
+                  "  pm.expect(pm.response.json().data.table.status).to.equal('AVAILABLE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Orders (MANAGER+)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get all orders succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Orders by Status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?status=COMPLETED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [{ "key": "status", "value": "COMPLETED" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Filter by status succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Staff",
+      "item": [
+        {
+          "name": "Get All Staff (MANAGER+)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/staff", "host": ["{{baseUrl}}"], "path": ["api", "staff"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get staff succeeds', () => pm.response.to.have.status(200));",
+                  "pm.test('No passwords in list', () => {",
+                  "  const list = pm.response.json().data;",
+                  "  list.forEach(s => pm.expect(s).to.not.have.property('password'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Staff by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/staff/{{staffId}}", "host": ["{{baseUrl}}"], "path": ["api", "staff", "{{staffId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get staff by id succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Staff (ADMIN only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Bob\",\n  \"lastName\": \"Jones\",\n  \"email\": \"bob@restaurant.com\",\n  \"password\": \"bob123\",\n  \"role\": \"MANAGER\",\n  \"phone\": \"+1-555-0102\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/staff", "host": ["{{baseUrl}}"], "path": ["api", "staff"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create staff succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('staffId', body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Staff (change phone, no password change)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Bob\",\n  \"lastName\": \"Jones\",\n  \"email\": \"bob@restaurant.com\",\n  \"role\": \"MANAGER\",\n  \"phone\": \"+1-555-9999\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/staff/{{staffId}}", "host": ["{{baseUrl}}"], "path": ["api", "staff", "{{staffId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update staff succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Staff (ADMIN only)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/staff/{{staffId}}", "host": ["{{baseUrl}}"], "path": ["api", "staff", "{{staffId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Delete staff succeeds', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Error Cases",
+      "item": [
+        {
+          "name": "Access protected endpoint without token (should 401)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tables", "host": ["{{baseUrl}}"], "path": ["api", "tables"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unauthenticated request rejected', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "STAFF tries to create table (should 403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableNumber\": \"T99\",\n  \"capacity\": 2\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tables", "host": ["{{baseUrl}}"], "path": ["api", "tables"] }
+          },
+          "_description": "Change the token to a STAFF-role token to test 403. With ADMIN token this will create the table (200)."
+        },
+        {
+          "name": "Get Non-existent Order (should 404)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/99999", "host": ["{{baseUrl}}"], "path": ["api", "orders", "99999"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Not found returns 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Item without name (should 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 10.00,\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/menu/items", "host": ["{{baseUrl}}"], "path": ["api", "menu", "items"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Missing name rejected with 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

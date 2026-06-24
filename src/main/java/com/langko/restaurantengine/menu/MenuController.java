@@ -4,7 +4,6 @@ import com.langko.restaurantengine.common.ApiResponse;
 import com.langko.restaurantengine.menu.dto.MenuCategoryRequest;
 import com.langko.restaurantengine.menu.dto.MenuItemRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +14,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/menu")
-@RequiredArgsConstructor
 public class MenuController {
 
     private final MenuService menuService;
+
+    public MenuController(MenuService menuService) {
+        this.menuService = menuService;
+    }
 
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<MenuCategory>>> getCategories() {

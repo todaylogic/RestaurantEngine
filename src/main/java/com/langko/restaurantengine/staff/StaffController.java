@@ -4,7 +4,6 @@ import com.langko.restaurantengine.common.ApiResponse;
 import com.langko.restaurantengine.staff.dto.StaffRequest;
 import com.langko.restaurantengine.staff.dto.StaffResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +12,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/staff")
-@RequiredArgsConstructor
 public class StaffController {
 
     private final StaffService staffService;
+
+    public StaffController(StaffService staffService) {
+        this.staffService = staffService;
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")

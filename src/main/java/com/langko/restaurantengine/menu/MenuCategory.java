@@ -2,13 +2,12 @@ package com.langko.restaurantengine.menu;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.*;
 
 @Entity
 @Table(name = "menu_categories")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class MenuCategory {
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -16,4 +15,13 @@ public class MenuCategory {
     private String name;
 
     private String description;
+
+    public MenuCategory() {}
+
+    public Long getId() { return id; }
+    public String getName() { return name; }
+    public String getDescription() { return description; }
+
+    public void setName(String name) { this.name = name; }
+    public void setDescription(String description) { this.description = description; }
 }

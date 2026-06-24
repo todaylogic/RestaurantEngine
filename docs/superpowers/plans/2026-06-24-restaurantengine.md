@@ -814,6 +814,7 @@ git commit -m "feat: add Staff entity, JWT infrastructure, and SecurityConfig"
 - Create: `src/main/java/com/langko/restaurantengine/auth/dto/LoginRequest.java`
 - Create: `src/main/java/com/langko/restaurantengine/auth/dto/RegisterRequest.java`
 - Create: `src/main/java/com/langko/restaurantengine/auth/dto/AuthResponse.java`
+- Create: `src/main/java/com/langko/restaurantengine/staff/dto/StaffResponse.java`
 - Create: `src/main/java/com/langko/restaurantengine/auth/AuthService.java`
 - Create: `src/main/java/com/langko/restaurantengine/auth/AuthController.java`
 - Test: `src/test/java/com/langko/restaurantengine/auth/AuthControllerTest.java`
@@ -822,7 +823,8 @@ git commit -m "feat: add Staff entity, JWT infrastructure, and SecurityConfig"
 - Consumes: `StaffRepository`, `JwtUtil`, `PasswordEncoder`, `AuthenticationManager` from Task 3
 - Produces:
   - `POST /api/auth/login` → `AuthResponse { token, role, firstName, lastName }`
-  - `POST /api/auth/register` → `Staff` (public if no staff exist, ADMIN-only otherwise)
+  - `POST /api/auth/register` → `StaffResponse` (password never exposed; public if no staff exist, ADMIN-only otherwise)
+  - `StaffResponse(Staff staff)` constructor mapping all fields except password
 
 - [ ] **Step 1: Create LoginRequest DTO**
 
@@ -950,7 +952,41 @@ public class AuthService {
 }
 ```
 
-- [ ] **Step 5: Create AuthController**
+- [ ] **Step 5: Create StaffResponse DTO (created here, reused by Task 8)**
+
+`src/main/java/com/langko/restaurantengine/staff/dto/StaffResponse.java`:
+```java
+package com.langko.restaurantengine.staff.dto;
+
+import com.langko.restaurantengine.staff.Role;
+import com.langko.restaurantengine.staff.Staff;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+
+@Getter
+public class StaffResponse {
+    private final Long id;
+    private final String firstName;
+    private final String lastName;
+    private final String email;
+    private final Role role;
+    private final String phone;
+    private final LocalDateTime createdAt;
+
+    public StaffResponse(Staff staff) {
+        this.id = staff.getId();
+        this.firstName = staff.getFirstName();
+        this.lastName = staff.getLastName();
+        this.email = staff.getEmail();
+        this.role = staff.getRole();
+        this.phone = staff.getPhone();
+        this.createdAt = staff.getCreatedAt();
+    }
+}
+```
+
+- [ ] **Step 6: Create AuthController**
 
 `src/main/java/com/langko/restaurantengine/auth/AuthController.java`:
 ```java
@@ -961,6 +997,7 @@ import com.langko.restaurantengine.auth.dto.LoginRequest;
 import com.langko.restaurantengine.auth.dto.RegisterRequest;
 import com.langko.restaurantengine.common.ApiResponse;
 import com.langko.restaurantengine.staff.Staff;
+import com.langko.restaurantengine.staff.dto.StaffResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -981,17 +1018,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Staff>> register(
+    public ResponseEntity<ApiResponse<StaffResponse>> register(
             @Valid @RequestBody RegisterRequest request,
             @AuthenticationPrincipal Staff currentUser) {
         boolean isFirst = authService.isFirstStaff();
         if (!isFirst) {
-            if (currentUser == null ||
-                !currentUser.getRole().name().equals("ADMIN")) {
+            if (currentUser == null || currentUser.getRole() != com.langko.restaurantengine.staff.Role.ADMIN) {
                 throw new AccessDeniedException("Only ADMIN can register new staff");
             }
         }
-        return ResponseEntity.ok(ApiResponse.success(authService.register(request)));
+        return ResponseEntity.ok(ApiResponse.success(new StaffResponse(authService.register(request))));
     }
 }
 ```
@@ -1037,7 +1073,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void register_firstStaff_returnsOk() throws Exception {
+    void register_firstStaff_returnsOkAndNoPassword() throws Exception {
         RegisterRequest req = new RegisterRequest();
         req.setFirstName("John"); req.setLastName("Doe");
         req.setEmail("john@test.com"); req.setPassword("password123");
@@ -1047,7 +1083,9 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true));
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.email").value("john@test.com"))
+            .andExpect(jsonPath("$.data.password").doesNotExist());
     }
 
     @Test
@@ -1887,6 +1925,7 @@ public class Order {
 ```java
 package com.langko.restaurantengine.order;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.langko.restaurantengine.menu.MenuItem;
 import jakarta.persistence.*;
 import lombok.*;
@@ -1899,6 +1938,7 @@ public class OrderItem {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
@@ -2276,20 +2316,20 @@ git commit -m "feat: add order module with full CRUD and table status sync"
 
 **Files:**
 - Create: `src/main/java/com/langko/restaurantengine/staff/dto/StaffRequest.java`
-- Create: `src/main/java/com/langko/restaurantengine/staff/dto/StaffResponse.java`
+- Reuse: `src/main/java/com/langko/restaurantengine/staff/dto/StaffResponse.java` *(created in Task 4 — do NOT recreate)*
 - Create: `src/main/java/com/langko/restaurantengine/staff/StaffService.java`
 - Create: `src/main/java/com/langko/restaurantengine/staff/StaffController.java`
 - Test: `src/test/java/com/langko/restaurantengine/staff/StaffControllerTest.java`
 
 **Interfaces:**
-- Consumes: `StaffRepository` (Task 3), `PasswordEncoder` (Task 3)
+- Consumes: `StaffRepository` (Task 3), `PasswordEncoder` (Task 3), `StaffResponse` (Task 4)
 - Produces:
   - `GET /api/staff` → `Page<StaffResponse>` (MANAGER, ADMIN)
   - `GET /api/staff/{id}` → `StaffResponse` (MANAGER, ADMIN)
   - `POST /api/staff` → `StaffResponse` (ADMIN)
   - `PUT /api/staff/{id}` → `StaffResponse` (ADMIN)
   - `DELETE /api/staff/{id}` → void (ADMIN)
-  - `StaffResponse` never exposes password field
+  - `StaffResponse` never exposes password field (guaranteed by Task 4's implementation)
 
 - [ ] **Step 1: Create StaffRequest DTO**
 
@@ -2314,41 +2354,9 @@ public class StaffRequest {
 }
 ```
 
-- [ ] **Step 2: Create StaffResponse DTO**
+*Note: `StaffResponse` already exists at `src/main/java/com/langko/restaurantengine/staff/dto/StaffResponse.java` — created in Task 4. Do not recreate it.*
 
-`src/main/java/com/langko/restaurantengine/staff/dto/StaffResponse.java`:
-```java
-package com.langko.restaurantengine.staff.dto;
-
-import com.langko.restaurantengine.staff.Role;
-import com.langko.restaurantengine.staff.Staff;
-import lombok.Getter;
-
-import java.time.LocalDateTime;
-
-@Getter
-public class StaffResponse {
-    private final Long id;
-    private final String firstName;
-    private final String lastName;
-    private final String email;
-    private final Role role;
-    private final String phone;
-    private final LocalDateTime createdAt;
-
-    public StaffResponse(Staff staff) {
-        this.id = staff.getId();
-        this.firstName = staff.getFirstName();
-        this.lastName = staff.getLastName();
-        this.email = staff.getEmail();
-        this.role = staff.getRole();
-        this.phone = staff.getPhone();
-        this.createdAt = staff.getCreatedAt();
-    }
-}
-```
-
-- [ ] **Step 3: Create StaffService**
+- [ ] **Step 2: Create StaffService**
 
 `src/main/java/com/langko/restaurantengine/staff/StaffService.java`:
 ```java
